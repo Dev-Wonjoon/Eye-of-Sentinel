@@ -1,3 +1,8 @@
 spring:
   application:
     name: eos
+
+opensearch:
+  uris: ${EOS_OPENSEARCH_URI}
+  username: ${EOS_OPENSEARCH_USERNAME}
+  password: ${EOS_OPENSEARCH_PASSWORD}
