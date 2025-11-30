@@ -25,6 +25,9 @@ public class LogDocument {
 
     @JsonAnySetter
     public void addDetail(String key, Object value) {
+        if (this.details == null) {
+            this.details = new HashMap<>();
+        }
         this.details.put(key, value);
     }
 
@@ -40,6 +43,7 @@ public class LogDocument {
         if ("message".equals(key)) return message;
         if ("_id".equals(key)) return id;
 
+        if (details == null) return null;
         return details.get(key);
     }
 }

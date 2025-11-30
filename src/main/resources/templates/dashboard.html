@@ -5,86 +5,138 @@
 </head>
 <body>
 <section>
-    <div class="px-4 py-6 sm:px-0">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Real-time Log Monitor</h1>
-            <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                    Live
-                </span>
-        </div>
+    <div class="flex flex-col md:flex-row gap-6 items-start h-[calc(100vh-10rem)]">
 
-        <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg overflow-x-auto transition-colors duration-200">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                    <th th:each="col : ${columns}"
-                        th:text="${col}"
-                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
-                    </th>
-                </tr>
-                </thead>
+        <aside class="w-full md:w-64 bg-white dark:bg-gray-800 shadow rounded-lg flex-shrink-0 flex flex-col h-full overflow-hidden transition-colors duration-200">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                <h2 class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                    Index List
+                </h2>
+            </div>
 
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                <tr th:each="log : ${logs}" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <div class="p-2 overflow-y-auto flex-1">
+                <ul class="space-y-1">
+                    <li>
+                        <a href="/dashboard?index=eos-logs*"
+                           class="block px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                           th:classappend="${currentIndex == 'eos-logs*'} ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'">
+                            All Logs (Default)
+                        </a>
+                    </li>
 
-                    <td th:each="col : ${columns}"
-                        th:classappend="${col == '@timestamp'} ? 'timestamp-cell' : ''"
-                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <hr class="border-gray-200 dark:border-gray-700 my-2">
 
-                        <span th:data-original="${log.get(col)}"
-                            th:text="${log.get(col) != null ? log.get(col) : '-'}"></span>
-                    </td>
-                </tr>
+                    <li th:each="idx : ${indices}">
+                        <a th:href="@{/dashboard(index=${idx})}"
+                           class="block px-3 py-2 rounded-md text-sm transition-colors truncate"
+                           th:classappend="${currentIndex == idx} ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200'"
+                           th:title="${idx}">
+                            <span th:text="${idx}">index-name</span>
+                        </a>
+                    </li>
 
-                <tr th:if="${#lists.isEmpty(logs)}">
-                    <td th:colspan="${#lists.size(columns) > 0 ? #lists.size(columns) : 1}"
-                        class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                        No logs found.
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+                    <li th:if="${#lists.isEmpty(indices)}" class="px-3 py-4 text-center text-sm text-gray-400 italic">
+                        No indices found.
+                    </li>
+                </ul>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col h-full min-w-0">
+
+            <div class="mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex flex-col sm:flex-row items-center gap-4 transition-colors duration-200 shrink-0">
+                <div class="flex-1 w-full relative">
+                    <label for="indexPattern" class="sr-only">Search Index Pattern</label>
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 sm:text-sm text-xs font-bold">IDX</span>
+                    </div>
+                    <input type="text" id="indexPattern"
+                           th:value="${currentIndex}"
+                           list="indexOptions"
+                           placeholder="Type index pattern (e.g. logstash-*)"
+                           class="block w-full pl-10 pr-12 sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-indigo-500 focus:border-indigo-500 py-2 border"
+                           onkeydown="if(event.key === 'Enter') applyIndexPattern()">
+                    <div class="absolute inset-y-0 right-0 flex items-center">
+                        <button onclick="applyIndexPattern()" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-r-md px-4 py-2 text-sm font-medium h-full">
+                            Apply
+                        </button>
+                    </div>
+                    <datalist id="indexOptions">
+                        <option th:each="idx : ${indices}" th:value="${idx}"></option>
+                    </datalist>
+                </div>
+
+                <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 animate-pulse">
+                            Live
+                        </span>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                            Auto-refresh: 10s
+                        </span>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden flex-1 flex flex-col transition-colors duration-200">
+                <div class="overflow-x-auto overflow-y-auto flex-1">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 relative">
+                        <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
+                        <tr>
+                            <th th:each="col : ${columns}" th:text="${col}"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap bg-gray-50 dark:bg-gray-700 shadow-sm">
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr th:each="log : ${logs}" class="hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                            <td th:each="col : ${columns}"
+                                th:classappend="${col == '@timestamp'} ? 'timestamp-cell font-mono text-xs' : ''"
+                                class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                        <span th:data-original="${log.get(col)}"
+                                              th:text="${log.get(col) != null ? log.get(col) : '-'}"></span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(logs)}">
+                            <td th:colspan="${#lists.size(columns) > 0 ? #lists.size(columns) : 1}"
+                                class="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400 flex flex-col items-center justify-center">
+                                <span class="text-2xl mb-2 font-bold text-gray-300">No Data</span>
+                                <span>No logs found for pattern: <strong th:text="${currentIndex}"></strong></span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // 날짜 포맷팅 함수 (UTC -> 한국 시간)
+        function applyIndexPattern() {
+            const pattern = document.getElementById('indexPattern').value;
+            if (pattern) {
+                window.location.href = `/dashboard?index=${encodeURIComponent(pattern)}`;
+            }
+        }
+
         function formatDates() {
             const cells = document.querySelectorAll('.timestamp-cell span');
-
             cells.forEach(cell => {
-                // 이미 변환된 경우 건너뛰기
                 if (cell.dataset.formatted) return;
-
                 const originalTime = cell.getAttribute('data-original');
                 if (!originalTime || originalTime === '-' || originalTime === 'null') return;
-
                 try {
                     const date = new Date(originalTime);
-
-                    // 한국 시간 포맷으로 변환 (예: 2025. 11. 30. 08:59:41)
-                    const formattedTime = date.toLocaleString('ko-KR', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
+                    cell.innerText = date.toLocaleString('ko-KR', {
+                        month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit',
                         hour12: false
                     });
-
-                    cell.innerText = formattedTime;
-                    cell.dataset.formatted = "true"; // 처리 완료 표시
-                } catch (e) {
-                    console.error("Date parsing error", e);
-                }
+                    cell.dataset.formatted = "true";
+                } catch (e) { console.error("Date error", e); }
             });
         }
 
-        // 1. 페이지 로드 시 날짜 변환 실행
         document.addEventListener("DOMContentLoaded", formatDates);
 
-        // 2. 10초마다 새로고침 (새로고침 후에도 DOMContentLoaded 이벤트가 발생하여 날짜가 변환됨)
         setTimeout(function(){
            window.location.reload();
         }, 10000);

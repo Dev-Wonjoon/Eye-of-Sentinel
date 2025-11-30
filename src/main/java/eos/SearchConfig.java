@@ -1,5 +1,6 @@
 package eos;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -35,5 +36,10 @@ public class SearchConfig {
                         httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
                 )
                 .build();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 }

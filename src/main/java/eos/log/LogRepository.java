@@ -1,18 +1,17 @@
 package eos.log;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -74,7 +73,7 @@ public class LogRepository {
                 LogDocument doc = objectMapper.treeToValue(hit.path("_source"), LogDocument.class);
 
                 if (doc != null) {
-                    doc.setId(hit.path("_id").asString());
+                    doc.setId(hit.path("_id").asText());
                     logs.add(doc);
                 }
             }
