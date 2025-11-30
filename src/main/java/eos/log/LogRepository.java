@@ -1,42 +1,113 @@
 package eos.log;
 
 import lombok.RequiredArgsConstructor;
-import org.opensearch.client.opensearch.OpenSearchClient;
-import org.opensearch.client.opensearch._types.SortOrder;
-import org.opensearch.client.opensearch.core.SearchResponse;
-import org.opensearch.client.opensearch.core.search.Hit;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
 import org.springframework.stereotype.Repository;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
 public class LogRepository {
-    private final OpenSearchClient client;
-
-    private static final String INDEX_PATTERN = "eos-logs*";
+    private final RestClient client;
+    private final ObjectMapper objectMapper;
+    private JsonNode rootNode;
 
     /*
-    * 지정된 개수만큼 최신 로그를 조회합니다. (like "tail n")
-    *
-    * @param size 조회할 로그의 최대 개수
-    * @return 최신순으로 정렬된 로그 리스트
-    * @throws IOException OpenSearch 통신 중 네트워크 에러 발생 시
-    */
-    public List<LogDocument> findRecentLogs(int size) throws IOException {
-        SearchResponse<LogDocument> response = client.search(s -> s
-                .index(INDEX_PATTERN)
-                .query(q -> q.matchAll(m -> m))
-                .sort(sort -> sort.field(f -> f
-                        .field("@timestamp")
-                        .order(SortOrder.Desc)))
-                .size(size),
-                LogDocument.class
+     * 인덱스 필드 목록 조회
+     */
+    public Set<String> findIndexFields(String indexPattern) throws IOException {
+        Request request = new Request("GET", "/" + indexPattern + "/_mapping");
+        Response response = client.performRequest(request);
+
+        Map<String, Object> rootMap = objectMapper.readValue(response.getEntity().getContent(), Map.class);
+
+        Set<String> fields = new LinkedHashSet<>();
+
+        fields.add("@timestamp");
+        fields.add("level");
+        fields.add("service");
+        fields.add("message");
+
+        for (Object indexValue : rootMap.values()) {
+            Map<String, Object> indexMap = (Map<String, Object>) indexValue;
+            Map<String, Object> mappings = (Map<String, Object>) indexMap.get("mappings");
+            if (mappings == null) continue;
+
+            Map<String, Object> properties = (Map<String, Object>) mappings.get("properties");
+            if (properties != null) {
+                fields.addAll(properties.keySet());
+            }
+        }
+        return fields;
+    }
+
+    /*
+     * 로그 데이터 검색
+     */
+    public List<LogDocument> findRecentLogs(String indexPattern, int size) throws IOException {
+        Request request = new Request("POST", "/" + indexPattern + "/_search");
+        String jsonQuery = String.format("""
+            {
+                "size": %d,
+                "query": { "match_all": {} },
+                "sort": [ { "@timestamp": "desc" } ]
+            }""", size);
+
+        request.setJsonEntity(jsonQuery);
+        Response response = client.performRequest(request);
+
+        JsonNode rootNode = objectMapper.readTree(response.getEntity().getContent());
+        JsonNode hitsNode = rootNode.path("hits").path("hits");
+
+        List<LogDocument> logs = new ArrayList<>();
+        if (hitsNode.isArray()) {
+            for (JsonNode hit : hitsNode) {
+                LogDocument doc = objectMapper.treeToValue(hit.path("_source"), LogDocument.class);
+
+                if (doc != null) {
+                    doc.setId(hit.path("_id").asString());
+                    logs.add(doc);
+                }
+            }
+        }
+        return logs;
+    }
+
+    /*
+     * 인덱스 목록 조회
+     */
+    public List<String> findIndexList() throws IOException {
+        Request request = new Request("GET", "/_cat/indices?format=json&h=index");
+        Response response = client.performRequest(request);
+
+        String responseBody = EntityUtils.toString(response.getEntity());
+
+        List<Map<String, String>> indicesMap = objectMapper.readValue(
+                responseBody,
+                new TypeReference<List<Map<String, String>>>() {}
         );
-        return response.hits().hits().stream()
-                .map(Hit::source)
-                .collect(Collectors.toList());
+
+        List<String> indices = new ArrayList<>();
+        for (Map<String, String> indexMap : indicesMap) {
+            Object indexNameObj = indexMap.get("index");
+            if (indexNameObj != null) {
+                String indexName = indexNameObj.toString();
+                if (!indexName.startsWith(".")) {
+                    indices.add(indexName);
+                }
+            }
+        }
+
+        Collections.sort(indices);
+        return indices;
     }
 }

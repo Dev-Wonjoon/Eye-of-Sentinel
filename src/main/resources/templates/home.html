@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html th:replace="~{layout/base :: layout(~{::title}, ~{::section})}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>EOS - Select Index</title>
+</head>
+<body>
+<section class="flex flex-col items-center justify-center min-h-[80vh]">
+    <div class="w-full max-w-2xl px-4 text-center">
+        <h1 class="text-5xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-2">
+            Eye of Sentinel
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-10 text-lg">
+            All-in-One Log Analysis & Monitoring
+        </p>
+
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 transition-all duration-200">
+            <label for="homeIndexPattern" class="block text-left text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Enter Index Pattern to Monitor
+            </label>
+
+            <div class="relative flex items-center">
+                <input type="text" id="homeIndexPattern"
+                       list="indexOptions"
+                       placeholder="e.g. eos-logs*, docker-*, app-2025.*"
+                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg px-4 py-3 border"
+                       onkeydown="if(event.key === 'Enter') goToDashboard()">
+
+                <button onclick="goToDashboard()"
+                        class="absolute right-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition-colors">
+                    Go
+                </button>
+            </div>
+
+            <datalist id="indexOptions">
+                <option th:each="idx : ${indices}" th:value="${idx}"></option>
+            </datalist>
+
+            <p class="mt-4 text-sm text-gray-400 dark:text-gray-500 text-left">
+                Tip: Use wildcard (*) to search multiple indices. (e.g. <code>logs-*</code>)
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const savedIndex = localStorage.getItem("lastIndexPattern");
+            if (savedIndex) {
+                document.getElementById("homeIndexPattern").value = savedIndex;
+            }
+        });
+
+        function goToDashboard() {
+            const pattern = document.getElementById('homeIndexPattern').value.trim();
+
+            if (pattern) {
+                localStorage.setItem("lastIndexPattern", pattern);
+                window.location.href = `/dashboard?index=${encodeURIComponent(pattern)}`;
+            } else {
+                alert("Please enter an index pattern.");
+            }
+        }
+    </script>
+</section>
+</body>
+</html>

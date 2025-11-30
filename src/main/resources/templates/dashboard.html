@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html th:replace="~{layout/base :: layout(~{::title}, ~{::section})}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>EOS Dashboard</title>
+</head>
+<body>
+<section>
+    <div class="px-4 py-6 sm:px-0">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Real-time Log Monitor</h1>
+            <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    Live
+                </span>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg overflow-x-auto transition-colors duration-200">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th th:each="col : ${columns}"
+                        th:text="${col}"
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
+                    </th>
+                </tr>
+                </thead>
+
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tr th:each="log : ${logs}" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+
+                    <td th:each="col : ${columns}"
+                        th:classappend="${col == '@timestamp'} ? 'timestamp-cell' : ''"
+                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+
+                        <span th:data-original="${log.get(col)}"
+                            th:text="${log.get(col) != null ? log.get(col) : '-'}"></span>
+                    </td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(logs)}">
+                    <td th:colspan="${#lists.size(columns) > 0 ? #lists.size(columns) : 1}"
+                        class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        No logs found.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 날짜 포맷팅 함수 (UTC -> 한국 시간)
+        function formatDates() {
+            const cells = document.querySelectorAll('.timestamp-cell span');
+
+            cells.forEach(cell => {
+                // 이미 변환된 경우 건너뛰기
+                if (cell.dataset.formatted) return;
+
+                const originalTime = cell.getAttribute('data-original');
+                if (!originalTime || originalTime === '-' || originalTime === 'null') return;
+
+                try {
+                    const date = new Date(originalTime);
+
+                    // 한국 시간 포맷으로 변환 (예: 2025. 11. 30. 08:59:41)
+                    const formattedTime = date.toLocaleString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+
+                    cell.innerText = formattedTime;
+                    cell.dataset.formatted = "true"; // 처리 완료 표시
+                } catch (e) {
+                    console.error("Date parsing error", e);
+                }
+            });
+        }
+
+        // 1. 페이지 로드 시 날짜 변환 실행
+        document.addEventListener("DOMContentLoaded", formatDates);
+
+        // 2. 10초마다 새로고침 (새로고침 후에도 DOMContentLoaded 이벤트가 발생하여 날짜가 변환됨)
+        setTimeout(function(){
+           window.location.reload();
+        }, 10000);
+    </script>
+</section>
+</body>
+</html>
